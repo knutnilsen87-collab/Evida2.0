@@ -1,0 +1,137 @@
+# status_bundle.txt
+# Universal operational truth file for Codex / agentic project work.
+# Read this before work. Update it during work. Do not claim success unless closure says success is claimable.
+
+status_bundle_version: 1
+last_updated: 2026-05-27T00:00:00Z
+updated_by: codex
+project_name: Evida2.0
+repo_root: F:\prosjekter(MAIN)\Evida2.0
+branch: main
+commit_before: 99a26b0
+commit_current: 99a26b0
+
+============================================================
+CURRENT STATE
+============================================================
+state_summary: >
+  Repoet er ryddet til monorepo-struktur direkte i Evida2.0. Koden er pushet til
+  origin/main. status_bundle.txt manglet i repo-roten og opprettes i denne
+  oppgaven for aa etablere operasjonell styring fremover.
+
+recommended_next_action: >
+  Bruk status_bundle.txt som forste kilde ved neste oppgave. Oppdater TASK AND
+  SCOPE, PLAN, EXECUTION LOG, CHANGED SURFACES, REPO HEALTH, ARTIFACTS og
+  VERIFICATION STATE fortlopende.
+
+============================================================
+TASK AND SCOPE
+============================================================
+task_id: establish-status-bundle
+task_request: >
+  Etabler status_bundle.txt i repo-roten og folg regelen om at filen skal leses
+  og oppdateres for arbeid fremover.
+scope_in:
+  - Opprette status_bundle.txt siden den ikke fantes.
+  - Fylle CURRENT STATE, TASK AND SCOPE, FACTS, ASSUMPTIONS og PLAN for denne oppgaven.
+  - Definere rollback og validering for denne endringen.
+scope_out:
+  - Ingen produktkodeendringer.
+  - Ingen endring av API, web, tester eller infrastruktur.
+
+============================================================
+FACTS
+============================================================
+facts:
+  - status_bundle.txt fantes ikke i repo-roten ved oppgavestart.
+  - Git branch er main.
+  - HEAD ved oppgavestart var 99a26b0.
+  - Remote origin er https://github.com/knutnilsen87-collab/Evida2.0.git.
+  - Forrige fullverifisering fra repo-roten passerte med npm run verify.
+
+============================================================
+ASSUMPTIONS
+============================================================
+assumptions:
+  - Brukerens melding er en instruks om at status_bundle.txt skal etableres og brukes.
+  - Universal template kan implementeres som en komplett tekstmal med de navngitte seksjonene.
+  - Dokumentasjonsendringen krever ikke full testkjøring, men git-status og filtilstedevaerelse skal kontrolleres.
+
+============================================================
+PLAN
+============================================================
+plan_status:
+  bounded: true
+  rollback_defined: true
+  validation_defined: true
+
+plan:
+  1. Les status_bundle.txt eller bekreft at den mangler.
+  2. Opprett status_bundle.txt fra universal mal med paakrevde seksjoner.
+  3. Kontroller git-status og at filen finnes.
+  4. Commit og push endringen dersom repoet er rent nok og remote er tilgjengelig.
+
+rollback:
+  - Fjern status_bundle.txt hvis brukeren ikke vil ha denne styringsfilen.
+  - Alternativt revert committen som introduserer status_bundle.txt.
+
+validation:
+  - Bekreft at status_bundle.txt finnes i repo-roten.
+  - Bekreft at git ser filen som ny/endret.
+  - Ingen kodebygg kreves fordi endringen er dokumentasjons-/prosessfil.
+
+============================================================
+EXECUTION LOG
+============================================================
+log:
+  - 2026-05-27: Leste repo-status og bekreftet at status_bundle.txt manglet.
+  - 2026-05-27: Opprettet status_bundle.txt med paakrevde seksjoner og sikkerhetsporter.
+
+============================================================
+CHANGED SURFACES
+============================================================
+changed_surfaces:
+  - status_bundle.txt
+
+============================================================
+REPO HEALTH
+============================================================
+repo_health:
+  git_branch: main
+  git_head_at_start: 99a26b0
+  working_tree_expected: dirty_until_status_bundle_committed
+  generated_files_intentionally_ignored:
+    - node_modules/
+    - .pytest_cache/
+    - __pycache__/
+    - .next/
+
+============================================================
+ARTIFACTS
+============================================================
+artifacts:
+  - path: status_bundle.txt
+    purpose: Operational truth file for planning, execution, verification and closure.
+
+============================================================
+VERIFICATION STATE
+============================================================
+verification_state:
+  tests_run: []
+  lint_run: []
+  typecheck_run: []
+  build_run: []
+  manual_checks:
+    - status_bundle_missing_confirmed_before_creation
+  verification_summary: >
+    Ingen test/lint/build kjoert for denne rene prosessfilendringen.
+
+============================================================
+CLOSURE READINESS
+============================================================
+closure_readiness:
+  can_claim_success: true
+  status: ready_to_commit
+  blockers: []
+  notes: >
+    Endringen er avgrenset til status_bundle.txt og kan committes/pushes.
