@@ -102,6 +102,7 @@ log:
   - 2026-05-27: Sjekket http://127.0.0.1:8000/health og fikk {"status":"ok"}.
   - 2026-05-27: Kjoerte npm run verify med alle checks gronne.
   - 2026-05-27: Commit laget lokalt og amendet med oppdatert status_bundle. Endelig hash leses fra git HEAD.
+  - 2026-05-27: Pushet launcher-reparasjonen til origin/main.
 
 ============================================================
 CHANGED SURFACES
@@ -162,7 +163,7 @@ CLOSURE READINESS
 ============================================================
 closure_readiness:
   can_claim_success: true
-  status: ready_to_push
+  status: succeeded_pushed
   blockers: []
   notes: >
-    Kan claime success etter push av launcher-reparasjonen.
+    Launcher-reparasjonen er validert, committet og pushet.
