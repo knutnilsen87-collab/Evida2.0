@@ -1,15 +1,22 @@
 @echo off
 setlocal
+cd /d "%~dp0"
 
-set "ROOT=%~dp0"
-set "LAUNCHER=%ROOT%scripts\start-dev.ps1"
+set "LAUNCHER=%~dp0scripts\start-dev.ps1"
 
-if not exist "%LAUNCHER%" (
-  echo Fant ikke startscriptet:
-  echo %LAUNCHER%
-  echo.
-  pause
-  exit /b 1
-)
+if exist "%LAUNCHER%" goto run_launcher
+echo Fant ikke startscriptet:
+echo "%LAUNCHER%"
+echo.
+pause
+exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%LAUNCHER%"
+:run_launcher
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LAUNCHER%"
+if not errorlevel 1 goto done
+echo.
+echo Start feilet. Se meldingen over.
+pause
+exit /b 1
+
+:done

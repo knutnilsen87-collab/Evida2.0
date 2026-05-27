@@ -1,10 +1,11 @@
 $ErrorActionPreference = "Stop"
 
-$Repo = Resolve-Path (Join-Path $PSScriptRoot "..")
+$Repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ApiDir = Join-Path $Repo "services\api"
-$WebDir = Join-Path $Repo "apps\web"
 $ApiUrl = "http://127.0.0.1:8000"
+$ApiDocsUrl = "$ApiUrl/docs"
 $WebUrl = "http://127.0.0.1:3000"
+$RunDir = Join-Path $Repo ".run"
 
 function Write-Section($Text) {
   Write-Host ""
@@ -29,89 +30,108 @@ function Test-PortOpen($Port) {
   }
 }
 
-Write-Section "Advokat AI starter"
+function Wait-HttpOk($Url, $Seconds) {
+  $deadline = (Get-Date).AddSeconds($Seconds)
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
+      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+        return $true
+      }
+    } catch {
+      Start-Sleep -Milliseconds 500
+    }
+  }
+  return $false
+}
+
+function Start-NewPowerShell($Title, $Command) {
+  Start-Process -FilePath "powershell.exe" -ArgumentList @(
+    "-NoExit",
+    "-ExecutionPolicy", "Bypass",
+    "-Command",
+    "`$host.UI.RawUI.WindowTitle = '$Title'; $Command"
+  )
+}
+
+Write-Section "Evida2.0 starter"
 Write-Host "Mappe: $Repo"
 
+New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
+
 if (Test-Path (Join-Path $Repo ".git")) {
-  Write-Section "Henter siste kode"
+  Write-Section "Sjekker oppdateringer"
   try {
-    git -C $Repo pull --ff-only
+    $dirty = git -C $Repo status --porcelain
+    if (-not $dirty) {
+      git -C $Repo pull --ff-only
+    } else {
+      Write-Host "Lokale endringer finnes. Hopper over automatisk git pull." -ForegroundColor Yellow
+    }
   } catch {
     Write-Host "Kunne ikke hente siste kode automatisk. Starter lokal versjon." -ForegroundColor Yellow
   }
 }
 
-Write-Section "Sjekker verktøy"
+Write-Section "Sjekker Python"
 if (-not (Test-Command "python")) {
-  Write-Host "Python mangler. Installer Python 3.11+ og prøv igjen." -ForegroundColor Red
-  pause
+  Write-Host "Python mangler. Installer Python 3.11+ og prov igjen." -ForegroundColor Red
   exit 1
 }
 
-$CanStartWeb = $false
-if (Test-Command "npm") {
-  $NextBin = Join-Path $Repo "node_modules\next\dist\bin\next"
-  $ReactDir = Join-Path $Repo "node_modules\react"
-  if ((Test-Path $NextBin) -and (Test-Path $ReactDir)) {
-    $CanStartWeb = $true
-  } else {
-    Write-Host "Frontend-avhengigheter mangler. Prøver npm install en gang, maks 3 minutter." -ForegroundColor Yellow
-    try {
-      $NpmCmd = (Get-Command npm).Source
-      $NpmProcess = Start-Process -FilePath $NpmCmd -ArgumentList @("install") -WorkingDirectory $Repo -PassThru
-      if (-not $NpmProcess.WaitForExit(180000)) {
-        $NpmProcess.Kill()
-        Write-Host "npm install brukte for lang tid. API starter likevel." -ForegroundColor Yellow
-      } elseif ($NpmProcess.ExitCode -ne 0) {
-        Write-Host "npm install feilet. API starter likevel." -ForegroundColor Yellow
-      }
-    } catch {
-      Write-Host "npm install feilet eller ble avbrutt. API starter likevel." -ForegroundColor Yellow
-    }
-    $CanStartWeb = (Test-Path $NextBin) -and (Test-Path $ReactDir)
-  }
-} else {
-  Write-Host "npm mangler. API starter, men webflaten kan ikke startes." -ForegroundColor Yellow
+try {
+  python -m uvicorn --version | Out-Null
+} catch {
+  Write-Host "Python finner ikke uvicorn. Installer avhengigheter for API-et og prov igjen." -ForegroundColor Red
+  Write-Host "Kommando: python -m pip install fastapi uvicorn pytest httpx"
+  exit 1
 }
 
 Write-Section "Starter API"
 if (Test-PortOpen 8000) {
-  Write-Host "API kjører allerede på $ApiUrl"
+  Write-Host "API kjorer allerede pa $ApiUrl"
 } else {
-  Start-Process powershell -ArgumentList @(
-    "-NoExit",
-    "-ExecutionPolicy", "Bypass",
-    "-Command",
-    "Set-Location '$ApiDir'; python -m uvicorn advokat_ai.main:app --host 127.0.0.1 --port 8000 --reload"
-  )
+  $apiCommand = "Set-Location -LiteralPath '$ApiDir'; python -m uvicorn advokat_ai.main:app --host 127.0.0.1 --port 8000 --reload"
+  Start-NewPowerShell "Evida2.0 API" $apiCommand
 }
 
-if ($CanStartWeb) {
-  Write-Section "Starter webflate"
-  if (Test-PortOpen 3000) {
-    Write-Host "Web kjører allerede på $WebUrl"
-  } else {
-    Start-Process powershell -ArgumentList @(
-      "-NoExit",
-      "-ExecutionPolicy", "Bypass",
-      "-Command",
-      "Set-Location '$Repo'; npm --workspace web run dev"
-    )
-  }
-  Start-Sleep -Seconds 4
-  Start-Process $WebUrl
+if (Wait-HttpOk "$ApiUrl/health" 20) {
+  Write-Host "API er klar: $ApiUrl/health" -ForegroundColor Green
 } else {
-  Write-Section "Webflate ikke klar"
-  Write-Host "Åpner API-dokumentasjonen i stedet. Når frontend-avhengigheter er installert, vil samme startfil åpne webflaten." -ForegroundColor Yellow
-  Start-Sleep -Seconds 3
-  Start-Process "$ApiUrl/docs"
+  Write-Host "API startet ikke innen 20 sekunder." -ForegroundColor Red
+  Write-Host "Se API-vinduet for feilmelding."
+  exit 1
+}
+
+Write-Section "Starter web eller fallback"
+$nextBin = Join-Path $Repo "node_modules\next\dist\bin\next"
+$reactDir = Join-Path $Repo "node_modules\react"
+
+if ((Test-Path $nextBin) -and (Test-Path $reactDir) -and (Test-Command "npm")) {
+  if (Test-PortOpen 3000) {
+    Write-Host "Web kjorer allerede pa $WebUrl"
+  } else {
+    $webCommand = "Set-Location -LiteralPath '$Repo'; npm --workspace web run dev"
+    Start-NewPowerShell "Evida2.0 Web" $webCommand
+  }
+
+  if (Wait-HttpOk $WebUrl 20) {
+    Start-Process $WebUrl
+  } else {
+    Write-Host "Web brukte for lang tid. Apner API-dokumentasjon i stedet." -ForegroundColor Yellow
+    Start-Process $ApiDocsUrl
+  }
+} else {
+  Write-Host "Frontend-avhengigheter er ikke installert. API fungerer, og dokumentasjonen apnes naa." -ForegroundColor Yellow
+  Write-Host "For webflate senere: kjor npm install fra repo-roten, og start filen pa nytt."
+  Start-Process $ApiDocsUrl
 }
 
 Write-Section "Ferdig"
 Write-Host "API: $ApiUrl"
+Write-Host "API docs: $ApiDocsUrl"
 Write-Host "Web: $WebUrl"
 Write-Host ""
-Write-Host "La server-vinduene stå åpne mens du bruker programmet."
-Write-Host "Endringer i kode fanges opp automatisk av dev-serverne."
-Write-Host ""
+Write-Host "La server-vinduene sta apne mens du bruker programmet."
+Write-Host "Trykk en tast for aa lukke dette startvinduet."
 pause
