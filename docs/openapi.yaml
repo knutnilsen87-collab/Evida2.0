@@ -1,0 +1,1439 @@
+openapi: 3.0.3
+info:
+  title: Advokat AI API
+  version: 1.0.0-pilot-candidate
+  description: >
+    Codex-executable API contract for Advokat AI Pilot Candidate.
+    This is not an MVP API. It is the contract for a controlled legal
+    document workspace using real legal documents under pilot conditions.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Health
+  - name: Cases
+  - name: Documents
+  - name: Sources
+  - name: Facts
+  - name: Evidence
+  - name: Timeline
+  - name: Drafts
+  - name: Assistant
+  - name: Control Gates
+  - name: Exports
+  - name: Audit
+  - name: Settings
+
+paths:
+  /v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/me:
+    get:
+      tags: [Settings]
+      summary: Get current user and tenant context
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+
+  /v1/cases:
+    get:
+      tags: [Cases]
+      summary: List cases visible to current user
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, archived, locked]
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Cases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseListResponse"
+    post:
+      tags: [Cases]
+      summary: Create case
+      operationId: createCase
+      x-required-permission: case:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCaseRequest"
+      responses:
+        "201":
+          description: Created case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/cases/{case_id}:
+    get:
+      tags: [Cases]
+      summary: Get case
+      operationId: getCase
+      x-required-permission: case:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseDetailResponse"
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Cases]
+      summary: Update case
+      operationId: updateCase
+      x-required-permission: case:update
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCaseRequest"
+      responses:
+        "200":
+          description: Updated case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/cases/{case_id}/overview:
+    get:
+      tags: [Cases]
+      summary: Get case overview/readiness dashboard
+      operationId: getCaseOverview
+      x-required-permission: case:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Case overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseOverview"
+
+  /v1/cases/{case_id}/members:
+    get:
+      tags: [Cases]
+      summary: List case members
+      operationId: listCaseMembers
+      x-required-permission: case:members:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseMembersResponse"
+    post:
+      tags: [Cases]
+      summary: Add case member
+      operationId: addCaseMember
+      x-required-permission: case:members:write
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCaseMemberRequest"
+      responses:
+        "201":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseMember"
+
+  /v1/cases/{case_id}/documents:init-upload:
+    post:
+      tags: [Documents]
+      summary: Initiate document upload
+      operationId: initiateDocumentUpload
+      x-required-permission: document:upload
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiateUploadRequest"
+      responses:
+        "200":
+          description: Upload target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiateUploadResponse"
+
+  /v1/cases/{case_id}/documents:complete-upload:
+    post:
+      tags: [Documents]
+      summary: Complete upload and register document
+      operationId: completeDocumentUpload
+      x-required-permission: document:upload
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteUploadRequest"
+      responses:
+        "201":
+          description: Document registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /v1/cases/{case_id}/documents:
+    get:
+      tags: [Documents]
+      summary: List documents
+      operationId: listDocuments
+      x-required-permission: document:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [uploaded, validating, processing, needs_review, source_verified, failed, quarantined]
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResponse"
+
+  /v1/cases/{case_id}/documents/{document_id}:
+    get:
+      tags: [Documents]
+      summary: Get document
+      operationId: getDocument
+      x-required-permission: document:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDetailResponse"
+
+  /v1/cases/{case_id}/documents/{document_id}:process:
+    post:
+      tags: [Documents]
+      summary: Start or retry document processing
+      operationId: processDocument
+      x-required-permission: document:process
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DocumentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Processing queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAcceptedResponse"
+
+  /v1/cases/{case_id}/documents/{document_id}/pages:
+    get:
+      tags: [Documents]
+      summary: List document pages
+      operationId: listPages
+      x-required-permission: document:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: Pages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageListResponse"
+
+  /v1/cases/{case_id}/source-refs:
+    get:
+      tags: [Sources]
+      summary: List source references
+      operationId: listSourceRefs
+      x-required-permission: source:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Source references
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceRefListResponse"
+    post:
+      tags: [Sources]
+      summary: Create source reference
+      operationId: createSourceRef
+      x-required-permission: source:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSourceRefRequest"
+      responses:
+        "201":
+          description: Source reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceRef"
+
+  /v1/cases/{case_id}/facts:
+    get:
+      tags: [Facts]
+      summary: List fact claims
+      operationId: listFactClaims
+      x-required-permission: fact:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: source_status
+          in: query
+          schema:
+            type: string
+            enum: [documented, missing_source, disputed, assumed, needs_review]
+      responses:
+        "200":
+          description: Facts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FactClaimListResponse"
+    post:
+      tags: [Facts]
+      summary: Create fact claim
+      operationId: createFactClaim
+      x-required-permission: fact:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFactClaimRequest"
+      responses:
+        "201":
+          description: Fact claim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FactClaim"
+
+  /v1/cases/{case_id}/evidence:
+    get:
+      tags: [Evidence]
+      summary: List evidence items
+      operationId: listEvidence
+      x-required-permission: evidence:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceListResponse"
+    post:
+      tags: [Evidence]
+      summary: Create evidence item
+      operationId: createEvidence
+      x-required-permission: evidence:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEvidenceRequest"
+      responses:
+        "201":
+          description: Evidence item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceItem"
+
+  /v1/cases/{case_id}/timeline:
+    get:
+      tags: [Timeline]
+      summary: List timeline events
+      operationId: listTimelineEvents
+      x-required-permission: timeline:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineListResponse"
+    post:
+      tags: [Timeline]
+      summary: Create timeline event
+      operationId: createTimelineEvent
+      x-required-permission: timeline:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTimelineEventRequest"
+      responses:
+        "201":
+          description: Timeline event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineEvent"
+
+  /v1/cases/{case_id}/drafts:
+    get:
+      tags: [Drafts]
+      summary: List drafts
+      operationId: listDrafts
+      x-required-permission: draft:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Drafts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftListResponse"
+    post:
+      tags: [Drafts]
+      summary: Create draft
+      operationId: createDraft
+      x-required-permission: draft:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDraftRequest"
+      responses:
+        "201":
+          description: Draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftDocument"
+
+  /v1/cases/{case_id}/drafts/{draft_id}:
+    get:
+      tags: [Drafts]
+      summary: Get draft
+      operationId: getDraft
+      x-required-permission: draft:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DraftId"
+      responses:
+        "200":
+          description: Draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftDetailResponse"
+    patch:
+      tags: [Drafts]
+      summary: Update draft
+      operationId: updateDraft
+      x-required-permission: draft:update
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DraftId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDraftRequest"
+      responses:
+        "200":
+          description: Updated draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftDocument"
+
+  /v1/cases/{case_id}/drafts/{draft_id}/source-coverage:
+    get:
+      tags: [Drafts]
+      summary: Get draft source coverage
+      operationId: getDraftSourceCoverage
+      x-required-permission: draft:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/DraftId"
+      responses:
+        "200":
+          description: Source coverage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceCoverageReport"
+
+  /v1/cases/{case_id}/assistant/chat:
+    post:
+      tags: [Assistant]
+      summary: Context-aware assistant chat for a case
+      operationId: assistantChat
+      x-required-permission: assistant:use
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantChatRequest"
+      responses:
+        "200":
+          description: Assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantChatResponse"
+
+  /v1/cases/{case_id}/control-gates/export:preview:
+    post:
+      tags: [Control Gates]
+      summary: Preview export readiness gate
+      operationId: previewExportGate
+      x-required-permission: export:preview
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportPreviewRequest"
+      responses:
+        "200":
+          description: Export gate result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportGateResult"
+
+  /v1/cases/{case_id}/approvals:
+    post:
+      tags: [Control Gates]
+      summary: Create approval decision
+      operationId: createApprovalDecision
+      x-required-permission: approval:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApprovalDecisionRequest"
+      responses:
+        "201":
+          description: Approval decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalDecision"
+
+  /v1/cases/{case_id}/exports:
+    post:
+      tags: [Exports]
+      summary: Create export package after gate pass and approval
+      operationId: createExportPackage
+      x-required-permission: export:create
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExportPackageRequest"
+      responses:
+        "201":
+          description: Export package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportPackage"
+        "409":
+          description: Export blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /v1/cases/{case_id}/exports/{export_id}:
+    get:
+      tags: [Exports]
+      summary: Get export package
+      operationId: getExportPackage
+      x-required-permission: export:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - $ref: "#/components/parameters/ExportId"
+      responses:
+        "200":
+          description: Export package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportPackage"
+
+  /v1/cases/{case_id}/audit:
+    get:
+      tags: [Audit]
+      summary: List audit events for case
+      operationId: listAuditEvents
+      x-required-permission: audit:read
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: action
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventListResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    CaseId:
+      name: case_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DocumentId:
+      name: document_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DraftId:
+      name: draft_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ExportId:
+      name: export_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok] }
+        version: { type: string }
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, user_message]
+          properties:
+            code: { type: string }
+            user_message: { type: string, description: "Norwegian user-facing message" }
+            technical_message: { type: string, nullable: true }
+            correlation_id: { type: string, nullable: true }
+            details: { type: object, additionalProperties: true }
+
+    Pagination:
+      type: object
+      required: [page, page_size, total]
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    CurrentUserResponse:
+      type: object
+      required: [user, tenant]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        tenant: { $ref: "#/components/schemas/Tenant" }
+        permissions:
+          type: array
+          items: { type: string }
+
+    Tenant:
+      type: object
+      required: [id, name, region]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        region: { type: string, enum: [EU, EEA, NO] }
+
+    User:
+      type: object
+      required: [id, tenant_id, email, role]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        display_name: { type: string, nullable: true }
+        role:
+          type: string
+          enum: [tenant_admin, case_owner, legal_reviewer, case_editor, case_viewer, external_collaborator, auditor]
+
+    Case:
+      type: object
+      required: [id, tenant_id, title, case_type, jurisdiction, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        title: { type: string }
+        case_type: { type: string }
+        jurisdiction: { type: string, default: "NO" }
+        status: { type: string, enum: [active, archived, locked, deleted_pending] }
+        sensitivity_level: { type: string, enum: [standard, sensitive, highly_sensitive] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CreateCaseRequest:
+      type: object
+      required: [title, case_type]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        case_type: { type: string }
+        jurisdiction: { type: string, default: "NO" }
+        description: { type: string, nullable: true }
+        sensitivity_level: { type: string, enum: [standard, sensitive, highly_sensitive], default: standard }
+
+    UpdateCaseRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string, nullable: true }
+        status: { type: string, enum: [active, archived, locked] }
+
+    CaseListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Case" }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+
+    CaseDetailResponse:
+      type: object
+      required: [case, permissions]
+      properties:
+        case: { $ref: "#/components/schemas/Case" }
+        permissions:
+          type: array
+          items: { type: string }
+
+    CaseOverview:
+      type: object
+      required: [case, readiness, next_best_action]
+      properties:
+        case: { $ref: "#/components/schemas/Case" }
+        readiness: { $ref: "#/components/schemas/ReadinessSummary" }
+        next_best_action: { $ref: "#/components/schemas/NextAction" }
+
+    ReadinessSummary:
+      type: object
+      required: [status, missing_source_count, unresolved_risk_count, ocr_warning_count, export_status]
+      properties:
+        status: { type: string, enum: [not_started, in_progress, needs_review, ready, blocked] }
+        missing_source_count: { type: integer }
+        unresolved_risk_count: { type: integer }
+        ocr_warning_count: { type: integer }
+        document_count: { type: integer }
+        export_status: { type: string, enum: [not_ready, blocked, needs_approval, ready, exported] }
+
+    NextAction:
+      type: object
+      required: [label, action_type]
+      properties:
+        label: { type: string }
+        action_type: { type: string }
+        href: { type: string, nullable: true }
+
+    CaseMember:
+      type: object
+      required: [case_id, user_id, role]
+      properties:
+        case_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        role:
+          type: string
+          enum: [case_owner, legal_reviewer, case_editor, case_viewer, external_collaborator, auditor]
+        permissions:
+          type: array
+          items: { type: string }
+
+    CaseMembersResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CaseMember" }
+
+    AddCaseMemberRequest:
+      type: object
+      required: [user_id, role]
+      properties:
+        user_id: { type: string, format: uuid }
+        role:
+          type: string
+          enum: [case_owner, legal_reviewer, case_editor, case_viewer, external_collaborator, auditor]
+
+    InitiateUploadRequest:
+      type: object
+      required: [filename, mime_type, size_bytes, sha256]
+      properties:
+        filename: { type: string }
+        mime_type: { type: string }
+        size_bytes: { type: integer }
+        sha256: { type: string, minLength: 64, maxLength: 64 }
+
+    InitiateUploadResponse:
+      type: object
+      required: [upload_id, upload_url, method]
+      properties:
+        upload_id: { type: string, format: uuid }
+        upload_url: { type: string }
+        method: { type: string, enum: [PUT, POST] }
+        headers:
+          type: object
+          additionalProperties: { type: string }
+        expires_at: { type: string, format: date-time }
+
+    CompleteUploadRequest:
+      type: object
+      required: [upload_id, filename, mime_type, size_bytes, sha256]
+      properties:
+        upload_id: { type: string, format: uuid }
+        filename: { type: string }
+        mime_type: { type: string }
+        size_bytes: { type: integer }
+        sha256: { type: string }
+
+    Document:
+      type: object
+      required: [id, case_id, filename, mime_type, sha256, status, user_status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        filename: { type: string }
+        mime_type: { type: string }
+        sha256: { type: string }
+        page_count: { type: integer, nullable: true }
+        status:
+          type: string
+          enum: [uploaded, validating, virus_scanning, validated, extracting_pages, ocr_pending, ocr_running, chunking, hashing, indexing, needs_review, source_verified, validation_failed, virus_blocked, ocr_failed, partial_ocr_failed, corrupted, quarantined, processing_failed]
+        user_status: { type: string }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/UserWarning" }
+        created_at: { type: string, format: date-time }
+
+    DocumentListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Document" }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+
+    DocumentDetailResponse:
+      type: object
+      properties:
+        document: { $ref: "#/components/schemas/Document" }
+        pages_summary:
+          type: object
+          properties:
+            total: { type: integer }
+            needs_review: { type: integer }
+            ocr_failed: { type: integer }
+
+    Page:
+      type: object
+      required: [id, document_id, page_number, ocr_status, user_status]
+      properties:
+        id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        page_number: { type: integer }
+        ocr_status:
+          type: string
+          enum: [pending, running, complete, low_confidence, failed, manually_verified]
+        user_status: { type: string }
+        ocr_text: { type: string, nullable: true }
+        bates_label: { type: string, nullable: true }
+        exhibit_label: { type: string, nullable: true }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/UserWarning" }
+
+    PageListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Page" }
+
+    SourceRef:
+      type: object
+      required: [id, case_id, document_id, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        page_id: { type: string, format: uuid, nullable: true }
+        chunk_id: { type: string, format: uuid, nullable: true }
+        quote: { type: string, nullable: true }
+        bates_label: { type: string, nullable: true }
+        status: { type: string, enum: [valid, needs_review, invalid] }
+        user_status: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    CreateSourceRefRequest:
+      type: object
+      required: [document_id]
+      properties:
+        document_id: { type: string, format: uuid }
+        page_id: { type: string, format: uuid, nullable: true }
+        chunk_id: { type: string, format: uuid, nullable: true }
+        quote: { type: string, nullable: true }
+        bates_label: { type: string, nullable: true }
+
+    SourceRefListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/SourceRef" }
+
+    FactClaim:
+      type: object
+      required: [id, case_id, text, source_status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        text: { type: string }
+        source_status:
+          type: string
+          enum: [documented, missing_source, disputed, assumed, needs_review]
+        confidence: { type: string, enum: [documented, likely, assumed, disputed, undocumented] }
+        source_refs:
+          type: array
+          items: { $ref: "#/components/schemas/SourceRef" }
+        created_at: { type: string, format: date-time }
+
+    CreateFactClaimRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        source_ref_ids:
+          type: array
+          items: { type: string, format: uuid }
+        source_status:
+          type: string
+          enum: [documented, missing_source, disputed, assumed, needs_review]
+
+    FactClaimListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/FactClaim" }
+
+    EvidenceItem:
+      type: object
+      required: [id, case_id, title, evidence_type]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        title: { type: string }
+        evidence_type: { type: string, enum: [document, image, statement, note, other] }
+        supports_fact_ids:
+          type: array
+          items: { type: string, format: uuid }
+        weakens_fact_ids:
+          type: array
+          items: { type: string, format: uuid }
+
+    CreateEvidenceRequest:
+      type: object
+      required: [title, evidence_type]
+      properties:
+        title: { type: string }
+        evidence_type: { type: string, enum: [document, image, statement, note, other] }
+        source_ref_ids:
+          type: array
+          items: { type: string, format: uuid }
+
+    EvidenceListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceItem" }
+
+    TimelineEvent:
+      type: object
+      required: [id, case_id, title, date_status]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        title: { type: string }
+        event_date: { type: string, format: date, nullable: true }
+        date_status: { type: string, enum: [exact, approximate, unknown] }
+        source_ref_ids:
+          type: array
+          items: { type: string, format: uuid }
+
+    CreateTimelineEventRequest:
+      type: object
+      required: [title, date_status]
+      properties:
+        title: { type: string }
+        event_date: { type: string, format: date, nullable: true }
+        date_status: { type: string, enum: [exact, approximate, unknown] }
+        source_ref_ids:
+          type: array
+          items: { type: string, format: uuid }
+
+    TimelineListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TimelineEvent" }
+
+    DraftDocument:
+      type: object
+      required: [id, case_id, title, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        title: { type: string }
+        draft_type: { type: string }
+        status:
+          type: string
+          enum: [draft, source_checked, review_required, approved, export_ready, exported, missing_source, unresolved_conflict, policy_blocked, insufficient_coverage]
+        user_status: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    DraftSection:
+      type: object
+      required: [id, draft_id, section_index, content]
+      properties:
+        id: { type: string, format: uuid }
+        draft_id: { type: string, format: uuid }
+        section_index: { type: integer }
+        heading: { type: string, nullable: true }
+        content: { type: string }
+        source_status:
+          type: string
+          enum: [documented, partial, missing_source, needs_review]
+
+    CreateDraftRequest:
+      type: object
+      required: [title, draft_type]
+      properties:
+        title: { type: string }
+        draft_type: { type: string }
+
+    UpdateDraftRequest:
+      type: object
+      properties:
+        title: { type: string }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/DraftSection" }
+
+    DraftListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/DraftDocument" }
+
+    DraftDetailResponse:
+      type: object
+      properties:
+        draft: { $ref: "#/components/schemas/DraftDocument" }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/DraftSection" }
+
+    SourceCoverageReport:
+      type: object
+      required: [status, missing_source_count, sections]
+      properties:
+        status: { type: string, enum: [pass, partial, blocked] }
+        missing_source_count: { type: integer }
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              section_id: { type: string, format: uuid }
+              source_status: { type: string }
+              warnings:
+                type: array
+                items: { $ref: "#/components/schemas/UserWarning" }
+
+    AssistantChatRequest:
+      type: object
+      required: [message, context]
+      properties:
+        session_id: { type: string, format: uuid, nullable: true }
+        message: { type: string, minLength: 1 }
+        preferred_answer_level:
+          type: string
+          enum: [short, simple, step_by_step, guided, advanced, audit]
+          default: simple
+        context:
+          $ref: "#/components/schemas/AssistantContext"
+
+    AssistantContext:
+      type: object
+      required: [current_route, current_screen]
+      properties:
+        current_route: { type: string }
+        current_screen: { type: string }
+        selected_object:
+          type: object
+          nullable: true
+          properties:
+            type: { type: string }
+            id: { type: string }
+            label: { type: string }
+        visible_state:
+          type: object
+          additionalProperties: true
+        recent_user_actions:
+          type: array
+          items: { type: string }
+
+    AssistantChatResponse:
+      type: object
+      required: [message_id, answer, mode, detected_intent, quality_gate]
+      properties:
+        message_id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        answer: { type: string }
+        mode:
+          type: string
+          enum: [product_help, explain_this, show_me_how, do_it_with_me, check_my_work, why_blocked, what_next, legal_work_help]
+        answer_level:
+          type: string
+          enum: [short, simple, step_by_step, guided, advanced, audit]
+        detected_intent: { type: string }
+        topic_fingerprint: { type: string }
+        is_semantic_repeat: { type: boolean }
+        repeat_strategy:
+          type: string
+          enum: [none, short_refinement, explain_difference, change_explanation_mode]
+        next_best_action:
+          $ref: "#/components/schemas/NextAction"
+        guided_actions:
+          type: array
+          items: { $ref: "#/components/schemas/GuidedAction" }
+        safety_flags:
+          type: array
+          items: { type: string }
+        quality_gate:
+          $ref: "#/components/schemas/AssistantQualityGate"
+
+    GuidedAction:
+      type: object
+      required: [action_type, label, requires_approval, may_change_data]
+      properties:
+        action_type:
+          type: string
+          enum: [explain_this, show_me_how, do_it_with_me, check_my_work, why_blocked, what_next, legal_work_help]
+        label: { type: string }
+        requires_approval: { type: boolean }
+        may_change_data: { type: boolean }
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              step_id: { type: string }
+              instruction: { type: string }
+              target_selector: { type: string, nullable: true }
+              completion_condition: { type: string, nullable: true }
+
+    AssistantQualityGate:
+      type: object
+      required: [passed, checks]
+      properties:
+        passed: { type: boolean }
+        checks:
+          type: object
+          properties:
+            context_specific: { type: boolean }
+            not_repetitive: { type: boolean }
+            no_technical_jargon: { type: boolean }
+            has_next_step: { type: boolean }
+            legal_boundary_preserved: { type: boolean }
+
+    ExportPreviewRequest:
+      type: object
+      required: [draft_id]
+      properties:
+        draft_id: { type: string, format: uuid }
+        export_type: { type: string, enum: [pdf, docx, bundle], default: pdf }
+
+    ExportGateResult:
+      type: object
+      required: [id, case_id, status, blockers, warnings, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        draft_id: { type: string, format: uuid }
+        status: { type: string, enum: [pass, blocked, needs_approval] }
+        user_summary: { type: string }
+        blockers:
+          type: array
+          items: { $ref: "#/components/schemas/GateBlocker" }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/UserWarning" }
+        approval_required: { type: boolean }
+        approval_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    GateBlocker:
+      type: object
+      required: [code, user_message, severity]
+      properties:
+        code: { type: string }
+        user_message: { type: string }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        affected_object:
+          type: object
+          nullable: true
+          properties:
+            type: { type: string }
+            id: { type: string }
+            label: { type: string }
+
+    UserWarning:
+      type: object
+      required: [code, user_message, severity]
+      properties:
+        code: { type: string }
+        user_message: { type: string }
+        severity: { type: string, enum: [info, warning, critical] }
+
+    CreateApprovalDecisionRequest:
+      type: object
+      required: [target_type, target_id, decision]
+      properties:
+        target_type: { type: string, enum: [export_gate, export_package, external_share] }
+        target_id: { type: string, format: uuid }
+        decision: { type: string, enum: [approved, rejected] }
+        comment: { type: string, nullable: true }
+
+    ApprovalDecision:
+      type: object
+      required: [id, target_type, target_id, decision, decided_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        target_type: { type: string }
+        target_id: { type: string, format: uuid }
+        decision: { type: string, enum: [approved, rejected] }
+        decided_by: { type: string, format: uuid }
+        comment: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    CreateExportPackageRequest:
+      type: object
+      required: [draft_id, export_gate_result_id, approval_id]
+      properties:
+        draft_id: { type: string, format: uuid }
+        export_gate_result_id: { type: string, format: uuid }
+        approval_id: { type: string, format: uuid }
+        export_type: { type: string, enum: [pdf, docx, bundle], default: pdf }
+
+    ExportPackage:
+      type: object
+      required: [id, case_id, draft_id, status, manifest, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid }
+        draft_id: { type: string, format: uuid }
+        status: { type: string, enum: [created, ready, failed] }
+        download_url: { type: string, nullable: true }
+        manifest:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
+
+    AuditEvent:
+      type: object
+      required: [id, tenant_id, action, actor_user_id, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        case_id: { type: string, format: uuid, nullable: true }
+        actor_user_id: { type: string, format: uuid, nullable: true }
+        action: { type: string }
+        object_type: { type: string, nullable: true }
+        object_id: { type: string, nullable: true }
+        summary: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }
+
+    AuditEventListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEvent" }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+
+    JobAcceptedResponse:
+      type: object
+      required: [job_id, user_message]
+      properties:
+        job_id: { type: string, format: uuid }
+        user_message: { type: string }
+        status_url: { type: string, nullable: true }

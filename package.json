@@ -1,0 +1,20 @@
+{
+  "name": "advokat-ai",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "npm --workspace web run dev",
+    "lint": "node scripts/check-ui-copy.mjs",
+    "test": "python -m pytest services/api services/worker",
+    "test:contracts": "python -m pytest tests/contract",
+    "assistant:golden": "python -m pytest tests/golden",
+    "verify": "npm run lint && npm run test && npm run test:contracts && npm run assistant:golden && npm --workspace web run build"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

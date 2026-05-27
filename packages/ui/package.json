@@ -1,0 +1,10 @@
+{
+  "name": "@advokat-ai/ui",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "dependencies": {
+    "react": "18.3.1"
+  }
+}

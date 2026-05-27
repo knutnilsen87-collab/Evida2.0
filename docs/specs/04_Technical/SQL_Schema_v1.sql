@@ -1,0 +1,2 @@
+-- Deprecated filename retained for compatibility.
+-- Use 04_Technical/SQL_Schema_Pilot_Candidate_v1.sql.

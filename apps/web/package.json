@@ -1,0 +1,22 @@
+{
+  "name": "web",
+  "private": true,
+  "scripts": {
+    "dev": "node ../../node_modules/next/dist/bin/next dev",
+    "build": "node ../../scripts/web-build-smoke.mjs",
+    "lint": "node ../../node_modules/next/dist/bin/next lint"
+  },
+  "dependencies": {
+    "next": "14.2.29",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@advokat-ai/schemas": "file:../../packages/schemas",
+    "@advokat-ai/ui": "file:../../packages/ui"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.19",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.8.3"
+  }
+}
