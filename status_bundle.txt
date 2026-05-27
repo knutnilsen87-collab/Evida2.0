@@ -8,61 +8,77 @@ updated_by: codex
 project_name: Evida2.0
 repo_root: F:\prosjekter(MAIN)\Evida2.0
 branch: main
-commit_before: 73a2692
-commit_current: 73a2692
+commit_before: 4b3c6c3
+commit_current: 4b3c6c3
 
 ============================================================
 CURRENT STATE
 ============================================================
 state_summary: >
-  Repoet er ryddet til monorepo-struktur direkte i Evida2.0 og pushet til
-  origin/main. Start_Advokat_AI.bat ble reparert for Windows-stier med parenteser
-  og validert. Bruker har naa bedt om aa fylle ut alle punkter i
-  C:\Users\knutn\Desktop\status_bundle.txt, som er en eldre kopi med uferdig
-  launcher-status.
+  Repoet er paa main ved commit 4b3c6c3. Bruker ber om lokal verifisering av
+  Advokat AI Pilot Candidate API v0.4.0 via faktiske HTTP-kall mot Swagger/API.
+  Ingen produktfeatures eller refaktor skal legges til.
 
 recommended_next_action: >
-  Fyll Desktop-kopien av status_bundle.txt med komplett og oppdatert status for
-  prosjektet. Valider at filen finnes og har closure_readiness.can_claim_success
-  satt riktig. Commit repoets status_bundle-oppdatering hvis relevant.
+  Start eller bruk lokal API-server, kjor paakrevde endpoint-sjekker, registrer
+  kommando/resultat/feil/skippede sjekker i denne filen, og claim kun success hvis
+  verifiseringsevidensen stoetter det.
 
 ============================================================
 TASK AND SCOPE
 ============================================================
-task_id: fill-desktop-status-bundle
+task_id: verify-pilot-candidate-api-v0-4-0-local
 task_request: >
-  Fyll ut alle punkter i C:\Users\knutn\Desktop\status_bundle.txt.
+  Verify Advokat AI Pilot Candidate API v0.4.0 locally. Sjekk health, OpenAPI,
+  me, case CRUD, document endpoints, source-ref og fact endpoints med lokale
+  HTTP-kall.
 
 scope_in:
-  - Lese repoets status_bundle.txt foer arbeid.
-  - Lese Desktop-filen som skal fylles ut.
-  - Fylle alle hovedseksjoner i Desktop-filen med oppdatert prosjektstatus.
-  - Oppdatere repoets status_bundle.txt med denne oppgaven.
+  - GET /api/health
+  - GET /health
+  - GET /openapi.json
+  - GET /v1/me
+  - POST /v1/cases
+  - GET /v1/cases
+  - GET /v1/cases/{case_id}
+  - PATCH /v1/cases/{case_id}
+  - POST /v1/cases/{case_id}/documents:init-upload
+  - POST /v1/cases/{case_id}/documents:complete-upload
+  - GET /v1/cases/{case_id}/documents
+  - POST /v1/cases/{case_id}/source-refs
+  - POST /v1/cases/{case_id}/facts
+  - GET /v1/cases/{case_id}/facts
+  - Registrere alle kommandoer, resultater, feil og skippede sjekker.
 
 scope_out:
-  - Ingen produktkodeendringer.
-  - Ingen endring av launcher, API, web eller tester.
-  - Ingen ny deploy.
+  - Ingen nye produktfeatures.
+  - Ingen refaktor.
+  - Ingen bred patching ved feil.
+  - Ingen produksjonsdeploy.
 
 ============================================================
 FACTS
 ============================================================
 facts:
-  - Repoets status_bundle.txt ble lest foer arbeid.
-  - C:\Users\knutn\Desktop\status_bundle.txt finnes og inneholder eldre launcher-task-status.
+  - status_bundle.txt ble lest foer arbeid.
   - Git branch er main.
-  - HEAD ved oppgavestart var 73a2692.
+  - HEAD ved oppgavestart var 4b3c6c3.
   - Remote origin er https://github.com/knutnilsen87-collab/Evida2.0.git.
-  - Launcher-reparasjon ble tidligere validert og pushet.
-  - Siste kjente fullverifisering: npm run verify passerte.
+  - API-koden ligger i services/api/advokat_ai/main.py.
+  - Auth i dev mode bruker x-user-id header.
+  - Seed owner user id er 00000000-0000-0000-0000-000000000001.
+  - GET /v1/me forventes aa kreve x-user-id og returnere brukerdata.
+  - POST /v1/cases forventes aa kreve x-user-id med case:create.
+  - Source-ref kan opprettes med document_id og bates_label uten aa kjoere document processing.
 
 ============================================================
 ASSUMPTIONS
 ============================================================
 assumptions:
-  - Bruker mener at Desktop-filen skal fylles ut, ikke at repoets statusfil skal erstattes med Desktop-kopien.
-  - Det er riktig aa bruke siste kjente prosjektstatus fra repoet og git-loggen.
-  - Siden endringen er status-/prosessdokumentasjon, kreves ikke full produkt-test utover filkontroll.
+  - Lokal API kan startes med python -m uvicorn advokat_ai.main:app fra services/api.
+  - 2xx-responser er forventet for de paakrevde smoke-kallene naar auth/header og payload er gyldig.
+  - Ingen endpoint skal gi uhaandtert 500.
+  - Dersom en endpoint ikke stoettes av current seed/dev mode, skal den registreres som skipped eller expected 4xx, ikke fikses bredt.
 
 ============================================================
 PLAN
@@ -73,46 +89,51 @@ plan_status:
   validation_defined: true
 
 plan:
-  1. Les repoets status_bundle.txt og Desktop-kopien.
-  2. Oppdater repoets status_bundle.txt for denne nye oppgaven foer ekstern fil endres.
-  3. Fyll C:\Users\knutn\Desktop\status_bundle.txt med komplett, oppdatert status.
-  4. Kontroller at Desktop-filen finnes og inneholder utfylte seksjoner.
-  5. Oppdater repoets status_bundle.txt med execution/verification/closure.
-  6. Commit og push repoets status_bundle-endring dersom den er eneste repoendring.
+  1. Les status_bundle.txt og oppdater task/scope/plan foer verifisering.
+  2. Start lokal API-server hvis /health ikke svarer.
+  3. Kjor alle paakrevde HTTP-sjekker med owner x-user-id der auth kreves.
+  4. Lagre statuskode, responsoppsummering og eventuelle feil for hvert endpoint.
+  5. Bekreft at /openapi.json er tilgjengelig og at ingen sjekk gir 500.
+  6. Oppdater status_bundle.txt med execution log, changed surfaces, repo health, artifacts, verification state og closure readiness.
+  7. Commit og push status_bundle.txt dersom eneste repoendring er verifiseringsloggen.
 
 rollback:
-  - Gjenopprett Desktop-filen fra innholdet som ble lest ved oppgavestart dersom bruker ikke liker utfyllingen.
-  - Revert committen som oppdaterer repoets status_bundle.txt for denne oppgaven.
+  - Revert committen som kun oppdaterer status_bundle.txt for denne verifiseringen.
+  - Stop eventuell lokal uvicorn-testprosess hvis den ble startet av verifiseringen.
 
 validation:
-  - Bekreft at C:\Users\knutn\Desktop\status_bundle.txt finnes.
-  - Bekreft at Desktop-filen har CURRENT STATE, TASK AND SCOPE, FACTS, ASSUMPTIONS, PLAN, EXECUTION LOG, CHANGED SURFACES, REPO HEALTH, ARTIFACTS, VERIFICATION STATE og CLOSURE READINESS.
-  - Bekreft at closure_readiness.can_claim_success er true naar utfyllingen er ferdig.
+  - HTTP-kall mot alle paakrevde endpoints registreres med status og resultat.
+  - Success krever OpenAPI JSON reachable og ingen uhaandterte 500.
+  - status_bundle.txt maa inneholde kommandoer/resultater/skips og can_claim_success maa bare settes true etter evidens.
 
 ============================================================
 EXECUTION LOG
 ============================================================
 log:
-  - 2026-05-27: Leste repoets status_bundle.txt foer arbeid.
-  - 2026-05-27: Leste C:\Users\knutn\Desktop\status_bundle.txt.
-  - 2026-05-27: Oppdaterte repoets status_bundle.txt med plan, rollback og validering for Desktop-statusoppgaven.
-  - 2026-05-27: Fylte ut C:\Users\knutn\Desktop\status_bundle.txt med komplett oppdatert prosjektstatus.
-  - 2026-05-27: Kontrollerte at Desktop-filen inneholder alle hovedseksjoner og can_claim_success: true.
+  - 2026-05-27: Leste status_bundle.txt foer arbeid.
+  - 2026-05-27: Oppdaterte status_bundle.txt med bounded plan, rollback og validation for lokal API-verifisering.
+  - 2026-05-27: Command: PowerShell API readiness check/start. Result: API server ready at http://127.0.0.1:8000.
+  - 2026-05-27: Command: inline Python urllib smoke suite against http://127.0.0.1:8000. Result: 14 endpoint checks passed, 0 failed, 0 skipped, 0 unhandled 500.
+  - 2026-05-27: Created smoke case id ee6ba63d-fea1-4118-8b2f-d11f1de07e02.
+  - 2026-05-27: Created smoke document id 232efb60-66c6-48a2-be37-e22e56ad71de.
+  - 2026-05-27: Created smoke source_ref id d4982a54-a544-435e-9423-f48b76172eda.
 
 ============================================================
 CHANGED SURFACES
 ============================================================
 changed_surfaces:
   - status_bundle.txt
-  - C:\Users\knutn\Desktop\status_bundle.txt
 
 ============================================================
 REPO HEALTH
 ============================================================
 repo_health:
   git_branch: main
-  git_head_at_start: 73a2692
-  working_tree_expected: dirty_until_status_bundle_task_committed
+  git_head_at_start: 4b3c6c3
+  working_tree_expected: dirty_until_status_bundle_verification_committed
+  product_code_changed: false
+  local_api_base_url: http://127.0.0.1:8000
+  local_api_started_or_reused: true
   generated_files_intentionally_ignored:
     - node_modules/
     - .pytest_cache/
@@ -125,32 +146,121 @@ ARTIFACTS
 ============================================================
 artifacts:
   - path: status_bundle.txt
-    purpose: Repo operational truth file for planning, execution, verification and closure.
-  - path: C:\Users\knutn\Desktop\status_bundle.txt
-    purpose: User-requested filled status bundle copy.
+    purpose: Verification log and operational truth for this API smoke test.
+  - path: .run/
+    purpose: Ignored runtime directory for local launcher/API logs if server start is needed.
 
 ============================================================
 VERIFICATION STATE
 ============================================================
 verification_state:
-  tests_run: []
-  lint_run: []
-  typecheck_run: []
-  build_run: []
-  manual_checks:
-    - status_bundle_read_before_work
-    - desktop_status_bundle_read_before_edit
-    - desktop_status_bundle_contains_all_required_sections
-    - desktop_status_bundle_has_can_claim_success_true
+  server:
+    status: ready
+    readiness_command: >
+      PowerShell checked http://127.0.0.1:8000/health and started uvicorn from services/api if needed.
+    readiness_result: API server ready at http://127.0.0.1:8000
+  endpoint_checks:
+    - name: GET /api/health
+      command: HTTP GET http://127.0.0.1:8000/api/health
+      expected: 2xx
+      status: 200
+      result: passed
+      response: {"status":"ok"}
+    - name: GET /health
+      command: HTTP GET http://127.0.0.1:8000/health
+      expected: 2xx
+      status: 200
+      result: passed
+      response: {"status":"ok"}
+    - name: GET /openapi.json
+      command: HTTP GET http://127.0.0.1:8000/openapi.json
+      expected: 2xx and JSON OpenAPI document
+      status: 200
+      result: passed
+      response_summary: openapi 3.1.0, title "Advokat AI Pilot Candidate API", version "0.4.0"
+    - name: GET /v1/me
+      command: HTTP GET /v1/me with x-user-id 00000000-0000-0000-0000-000000000001
+      expected: 2xx authenticated user response
+      status: 200
+      result: passed
+      response_summary: owner user returned with role case_owner
+    - name: POST /v1/cases
+      command: HTTP POST /v1/cases with owner x-user-id and JSON case payload
+      expected: 201
+      status: 201
+      result: passed
+      response_summary: created case ee6ba63d-fea1-4118-8b2f-d11f1de07e02
+    - name: GET /v1/cases
+      command: HTTP GET /v1/cases with owner x-user-id
+      expected: 2xx list response
+      status: 200
+      result: passed
+      response_summary: returned seed case and created smoke case
+    - name: GET /v1/cases/{case_id}
+      command: HTTP GET /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02 with owner x-user-id
+      expected: 2xx case response
+      status: 200
+      result: passed
+      response_summary: returned created smoke case
+    - name: PATCH /v1/cases/{case_id}
+      command: HTTP PATCH /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02 with description update
+      expected: 2xx updated case response
+      status: 200
+      result: passed
+      response_summary: description updated to "Updated by local API smoke verification"
+    - name: POST /v1/cases/{case_id}/documents:init-upload
+      command: HTTP POST /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/documents:init-upload
+      expected: 2xx upload token response
+      status: 200
+      result: passed
+      response_summary: upload_token returned
+    - name: POST /v1/cases/{case_id}/documents:complete-upload
+      command: HTTP POST /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/documents:complete-upload
+      expected: 201 document response
+      status: 201
+      result: passed
+      response_summary: created document 232efb60-66c6-48a2-be37-e22e56ad71de with status uploaded
+    - name: GET /v1/cases/{case_id}/documents
+      command: HTTP GET /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/documents
+      expected: 2xx document list
+      status: 200
+      result: passed
+      response_summary: returned created smoke document
+    - name: POST /v1/cases/{case_id}/source-refs
+      command: HTTP POST /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/source-refs with document_id and bates_label VERIFY-0001
+      expected: 201 source ref response
+      status: 201
+      result: passed
+      response_summary: created source_ref d4982a54-a544-435e-9423-f48b76172eda with status valid
+    - name: POST /v1/cases/{case_id}/facts
+      command: HTTP POST /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/facts with source_ref_ids
+      expected: 201 fact response
+      status: 201
+      result: passed
+      response_summary: created documented fact 4ba8e0e9-8769-46ea-b627-4118412ed0fd
+    - name: GET /v1/cases/{case_id}/facts
+      command: HTTP GET /v1/cases/ee6ba63d-fea1-4118-8b2f-d11f1de07e02/facts
+      expected: 2xx fact list
+      status: 200
+      result: passed
+      response_summary: returned created documented fact
+  skipped_checks: []
+  failures: []
+  unhandled_500_count: 0
+  openapi_json_reachable: true
+  failed_count: 0
+  skipped_count: 0
   verification_summary: >
-    Desktop-filen er fylt ut og kontrollert. Ingen produktkode ble endret.
+    Local Advokat AI Pilot Candidate API v0.4.0 smoke verification passed for all
+    required endpoints. OpenAPI JSON is reachable. No endpoint returned an
+    unhandled 500. No checks were skipped.
 
 ============================================================
 CLOSURE READINESS
 ============================================================
 closure_readiness:
   can_claim_success: true
-  status: succeeded
+  status: succeeded_pending_commit
   blockers: []
   notes: >
-    Desktop-filen er fylt ut og repoets status_bundle er oppdatert for oppgaven.
+    Verification evidence supports success. Only status_bundle.txt changed.
