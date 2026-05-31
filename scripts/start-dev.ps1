@@ -4,6 +4,7 @@ $Repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ApiDir = Join-Path $Repo "services\api"
 $ApiUrl = "http://127.0.0.1:8000"
 $ApiDocsUrl = "$ApiUrl/docs"
+$AppUrl = "$ApiUrl/ui"
 $WebUrl = "http://127.0.0.1:3000"
 $RunDir = Join-Path $Repo ".run"
 
@@ -103,7 +104,7 @@ if (Wait-HttpOk "$ApiUrl/health" 20) {
   exit 1
 }
 
-Write-Section "Starter web eller fallback"
+Write-Section "Starter Evida2.0"
 $nextBin = Join-Path $Repo "node_modules\next\dist\bin\next"
 $reactDir = Join-Path $Repo "node_modules\react"
 
@@ -118,16 +119,17 @@ if ((Test-Path $nextBin) -and (Test-Path $reactDir) -and (Test-Command "npm")) {
   if (Wait-HttpOk $WebUrl 20) {
     Start-Process $WebUrl
   } else {
-    Write-Host "Web brukte for lang tid. Apner API-dokumentasjon i stedet." -ForegroundColor Yellow
-    Start-Process $ApiDocsUrl
+    Write-Host "Web brukte for lang tid. Apner lokal Evida2.0-UI fra API-et i stedet." -ForegroundColor Yellow
+    Start-Process $AppUrl
   }
 } else {
-  Write-Host "Frontend-avhengigheter er ikke installert. API fungerer, og dokumentasjonen apnes naa." -ForegroundColor Yellow
-  Write-Host "For webflate senere: kjor npm install fra repo-roten, og start filen pa nytt."
-  Start-Process $ApiDocsUrl
+  Write-Host "Frontend-avhengigheter er ikke installert. Apner lokal Evida2.0-UI fra API-et." -ForegroundColor Yellow
+  Write-Host "For full webflate senere: kjor npm install fra repo-roten, og start filen pa nytt."
+  Start-Process $AppUrl
 }
 
 Write-Section "Ferdig"
+Write-Host "Evida2.0: $AppUrl"
 Write-Host "API: $ApiUrl"
 Write-Host "API docs: $ApiDocsUrl"
 Write-Host "Web: $WebUrl"

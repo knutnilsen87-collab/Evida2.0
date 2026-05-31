@@ -3,57 +3,48 @@
 # Read this before work. Update it during work. Do not claim success unless closure says success is claimable.
 
 status_bundle_version: 1
-last_updated: 2026-05-27T00:00:00Z
+last_updated: 2026-05-31T20:35:00+02:00
 updated_by: codex
 project_name: Evida2.0
 repo_root: F:\prosjekter(MAIN)\Evida2.0
 branch: main
-commit_before: a8f4de5
+commit_before: 792420a
 commit_current: see_git_HEAD
 
 ============================================================
 CURRENT STATE
 ============================================================
 state_summary: >
-  Repoet er paa main ved commit a8f4de5. Forrige lokale API-verifisering passerte
-  og ble logget i status_bundle.txt. Bruker ber om en ny lokal verifisering av
-  Advokat AI Pilot Candidate API v0.4.0 med samme eksplisitte endpoint-liste.
-  Ingen produktfeatures eller refaktor skal legges til.
+  Repoet er paa main. Bruker startet programmet via startfilen, men ble sendt til
+  Swagger paa /docs. Det betyr at API-et er oppe, men brukerflaten er ikke det
+  startfilen aapner. Bruker ber om at programmet heter Evida2.0 og at
+  startfilen heter det samme.
 
 recommended_next_action: >
-  Bruk eller start lokal API-server, kjor alle paakrevde HTTP-sjekker, registrer
-  kommandoer/resultater/feil/skips i status_bundle.txt, og claim kun success hvis
-  evidensen viser OpenAPI reachable, forventede 2xx/4xx og ingen uhaandterte 500.
+  Lag en liten lokal Evida2.0-UI som API-et kan servere direkte, oppdater
+  startscriptet til aa aapne UI i stedet for Swagger, og legg til startfilen
+  Evida2.0.bat. Valider at /ui, /health og startscript-syntaks fungerer.
 
 ============================================================
 TASK AND SCOPE
 ============================================================
-task_id: verify-pilot-candidate-api-v0-4-0-local-repeat-2026-05-27
+task_id: expose-evida2-local-ui-and-launcher-2026-05-31
 task_request: >
-  Verify Advokat AI Pilot Candidate API v0.4.0 locally. Verify that the local API
-  shown in Swagger is actually functional.
+  Bruker spoer hvor UI er, presiserer at startfilen aapnet Swagger, og ber om
+  at programmet heter Evida2.0 og at startfilen heter det samme.
 
 scope_in:
-  - GET /api/health
-  - GET /health
-  - GET /openapi.json
-  - GET /v1/me
-  - POST /v1/cases
-  - GET /v1/cases
-  - GET /v1/cases/{case_id}
-  - PATCH /v1/cases/{case_id}
-  - POST /v1/cases/{case_id}/documents:init-upload
-  - POST /v1/cases/{case_id}/documents:complete-upload
-  - GET /v1/cases/{case_id}/documents
-  - POST /v1/cases/{case_id}/source-refs
-  - POST /v1/cases/{case_id}/facts
-  - GET /v1/cases/{case_id}/facts
-  - Record every command, result, failure and skipped check.
+  - Make a visible local UI reachable from the running API.
+  - Make the launcher open the UI, not Swagger, when web dependencies are absent.
+  - Add an Evida2.0.bat start file with the requested product name.
+  - Keep existing Start_Advokat_AI.bat as a compatibility wrapper if needed.
+  - Ignore Windows desktop.ini noise.
+  - Record commands, results and validation evidence in status_bundle.txt.
 
 scope_out:
-  - No new product features.
+  - No broad frontend rewrite.
+  - No product feature expansion beyond making existing local API-backed UI visible.
   - No refactor.
-  - No broad patching if an endpoint fails.
   - No production deployment.
 
 ============================================================
@@ -62,22 +53,22 @@ FACTS
 facts:
   - status_bundle.txt was read before work.
   - Git branch is main.
-  - HEAD at task start was a8f4de5.
+  - HEAD at task start was 792420a.
   - Remote origin is https://github.com/knutnilsen87-collab/Evida2.0.git.
   - API code is in services/api/advokat_ai/main.py.
-  - Dev auth uses x-user-id header.
-  - Seed owner user id is 00000000-0000-0000-0000-000000000001.
-  - Smoke calls can create a new case, document, source ref and fact in the in-memory dev store.
-  - SourceRefCreate supports document_id plus bates_label, so document processing is not required for this smoke test.
+  - Launcher code is in scripts/start-dev.ps1.
+  - Existing Start_Advokat_AI.bat delegates to scripts/start-dev.ps1.
+  - The screenshot shows http://127.0.0.1:8000/docs, which is Swagger/OpenAPI docs, not user UI.
+  - The launcher currently opens Swagger docs if Next/frontend dependencies are not installed.
+  - Dev auth uses x-user-id header and seed owner id 00000000-0000-0000-0000-000000000001.
 
 ============================================================
 ASSUMPTIONS
 ============================================================
 assumptions:
-  - The local API can be reached at http://127.0.0.1:8000 or started with uvicorn from services/api.
-  - 2xx responses are expected for the valid authenticated smoke calls.
-  - Any supported endpoint returning 500 would fail this verification.
-  - If an endpoint is unsupported in current dev mode, it must be recorded as skipped or expected 4xx, not patched broadly.
+  - A static API-served UI is acceptable as an immediate local user-facing surface until the full Next web app dependencies are installed.
+  - The existing launcher update/pull behavior should be preserved.
+  - A compatibility Start_Advokat_AI.bat can remain so older shortcuts still work.
 
 ============================================================
 PLAN
@@ -88,29 +79,46 @@ plan_status:
   validation_defined: true
 
 plan:
-  1. Read status_bundle.txt and update this task plan before running checks.
-  2. Ensure local API is ready at http://127.0.0.1:8000.
-  3. Run the 14 required HTTP endpoint checks with owner x-user-id where auth is required.
-  4. Capture status code and concise response summary for each endpoint.
-  5. Confirm /openapi.json is reachable and reports API version 0.4.0.
-  6. Confirm failed_count, skipped_count and unhandled_500_count.
-  7. Update status_bundle.txt with execution log, changed surfaces, repo health, artifacts, verification state and closure readiness.
-  8. Commit and push status_bundle.txt if it is the only repo change.
+  1. Read status_bundle.txt and inspect current launcher/API entrypoints.
+  2. Add a local Evida2.0 UI route served by the API at /ui and redirect / to it.
+  3. Update scripts/start-dev.ps1 to call the app Evida2.0 and open /ui as fallback instead of /docs.
+  4. Add Evida2.0.bat and keep Start_Advokat_AI.bat as compatibility wrapper.
+  5. Ignore desktop.ini.
+  6. Validate PowerShell syntax, /health and /ui locally.
+  7. Update status_bundle.txt after edits and validation.
+  8. Commit and push the completed change if validation passes.
 
 rollback:
-  - Revert the commit that records this verification in status_bundle.txt.
-  - Stop any uvicorn process started solely for this verification if needed.
+  - Revert the launcher/UI commit.
+  - Use /docs directly if UI route validation fails before commit.
 
 validation:
-  - All required HTTP checks must be recorded.
-  - OpenAPI JSON must be reachable.
-  - No unhandled 500 responses.
+  - PowerShell can parse scripts/start-dev.ps1.
+  - http://127.0.0.1:8000/health returns 200.
+  - http://127.0.0.1:8000/ui returns 200 and contains Evida2.0 UI markup.
   - status_bundle.txt must show can_claim_success true only after evidence supports success.
 
 ============================================================
 EXECUTION LOG
 ============================================================
 log:
+  - 2026-05-31: Read status_bundle.txt before work.
+  - 2026-05-31: Inspected git status, services/api/advokat_ai/main.py, scripts/start-dev.ps1, .gitignore and repo root.
+  - 2026-05-31: Updated status_bundle.txt with bounded launcher/UI plan, rollback and validation before editing product files.
+  - 2026-05-31: Added services/api/advokat_ai/local_ui.py with API-backed Evida2.0 local UI.
+  - 2026-05-31: Updated services/api/advokat_ai/main.py to redirect / to /ui and serve /ui as HTML.
+  - 2026-05-31: Updated scripts/start-dev.ps1 to open Evida2.0 UI fallback instead of Swagger docs.
+  - 2026-05-31: Added Evida2.0.bat as requested clickable launcher name.
+  - 2026-05-31: Updated Start_Advokat_AI.bat to delegate to Evida2.0.bat for compatibility.
+  - 2026-05-31: Added desktop.ini to .gitignore.
+  - 2026-05-31: Command: [scriptblock]::Create(Get-Content scripts/start-dev.ps1). Result: passed.
+  - 2026-05-31: Command: python -m py_compile services/api/advokat_ai/main.py services/api/advokat_ai/local_ui.py. Result: passed.
+  - 2026-05-31: Command: ruff check . from services/api. Result: passed.
+  - 2026-05-31: Command: python -m pytest from services/api using default python 3.10. Result: failed because pytest is not installed for Python 3.10.
+  - 2026-05-31: Command: py -3.11 -m pytest from services/api. Result: 11 passed.
+  - 2026-05-31: Command: GET http://127.0.0.1:8000/health. Result: 200.
+  - 2026-05-31: Command: GET http://127.0.0.1:8000/ui. Result: 200, contains Evida2.0 title/heading and API-backed UI markup.
+  - 2026-05-31: Command: GET http://127.0.0.1:8000/ without redirects. Result: 307 redirect to /ui.
   - 2026-05-27: Read status_bundle.txt before work.
   - 2026-05-27: Updated status_bundle.txt with bounded plan, rollback and validation before endpoint checks.
   - 2026-05-27: Command: PowerShell API readiness check/start. Result: API server ready at http://127.0.0.1:8000.
@@ -126,15 +134,21 @@ CHANGED SURFACES
 ============================================================
 changed_surfaces:
   - status_bundle.txt
+  - services/api/advokat_ai/local_ui.py
+  - services/api/advokat_ai/main.py
+  - scripts/start-dev.ps1
+  - Evida2.0.bat
+  - Start_Advokat_AI.bat
+  - .gitignore
 
 ============================================================
 REPO HEALTH
 ============================================================
 repo_health:
   git_branch: main
-  git_head_at_start: a8f4de5
-  working_tree_expected: dirty_until_status_bundle_verification_committed
-  product_code_changed: false
+  git_head_at_start: 792420a
+  working_tree_expected: dirty_until_launcher_ui_change_committed
+  product_code_changed: true
   local_api_base_url: http://127.0.0.1:8000
   local_api_started_or_reused: true
   generated_files_intentionally_ignored:
@@ -149,14 +163,59 @@ ARTIFACTS
 ============================================================
 artifacts:
   - path: status_bundle.txt
-    purpose: Verification log and operational truth for this repeat API smoke test.
+    purpose: Verification log and operational truth for this launcher/UI fix.
   - path: .run/
     purpose: Ignored runtime directory for local launcher/API logs if server start is needed.
+  - path: Evida2.0.bat
+    purpose: Requested clickable launcher name for the program.
+  - path: services/api/advokat_ai/local_ui.py
+    purpose: Local API-backed Evida2.0 UI served at /ui.
 
 ============================================================
 VERIFICATION STATE
 ============================================================
 verification_state:
+  ui_launcher_task:
+    status: passed
+    checks:
+      - name: scripts/start-dev.ps1 parse
+        command: "[scriptblock]::Create((Get-Content -Raw scripts/start-dev.ps1))"
+        result: passed
+      - name: Python compile
+        command: "python -m py_compile services/api/advokat_ai/main.py services/api/advokat_ai/local_ui.py"
+        result: passed
+      - name: API lint
+        command: "ruff check ."
+        cwd: services/api
+        result: passed
+      - name: API tests with default python
+        command: "python -m pytest"
+        cwd: services/api
+        result: failed
+        reason: Python 3.10 environment has no pytest module installed.
+      - name: API tests with Python 3.11
+        command: "py -3.11 -m pytest"
+        cwd: services/api
+        result: passed
+        summary: "11 passed"
+      - name: Health endpoint
+        command: "GET http://127.0.0.1:8000/health"
+        result: passed
+        status: 200
+      - name: Evida2.0 UI endpoint
+        command: "GET http://127.0.0.1:8000/ui"
+        result: passed
+        status: 200
+        evidence: "HTML contains <title>Evida2.0</title>, <h1>Evida2.0</h1> and /v1/cases calls."
+      - name: Root redirect
+        command: "GET http://127.0.0.1:8000/ without following redirects"
+        result: passed
+        status: 307
+        location: /ui
+    planned_checks:
+      - PowerShell parse check for scripts/start-dev.ps1
+      - GET http://127.0.0.1:8000/health
+      - GET http://127.0.0.1:8000/ui
   server:
     status: ready
     readiness_command: >
@@ -263,7 +322,10 @@ CLOSURE READINESS
 ============================================================
 closure_readiness:
   can_claim_success: true
-  status: succeeded_pending_commit
-  blockers: []
+  status: succeeded_ready_to_commit_and_push
+  blockers:
+    - Default python command points to Python 3.10 where pytest is not installed; validated with py -3.11 instead.
   notes: >
-    Verification evidence supports success. Only status_bundle.txt changed.
+    Evidence supports success for the launcher/UI task. The requested Evida2.0
+    launcher file exists, /ui is reachable, / redirects to /ui, launcher fallback
+    opens /ui instead of Swagger, lint passed and API tests passed with Python 3.11.

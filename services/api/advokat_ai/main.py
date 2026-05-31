@@ -4,9 +4,11 @@ from hashlib import sha256
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from .domain import USER_STATUS, User, digest_text, new_id, now_iso, store
+from .local_ui import render_local_ui
 
 app = FastAPI(title="Advokat AI Pilot Candidate API", version="0.4.0")
 
@@ -123,6 +125,16 @@ def health() -> dict[str, str]:
 def reset() -> dict[str, str]:
     store.seed()
     return {"status": "reset"}
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/ui")
+
+
+@app.get("/ui", response_class=HTMLResponse, include_in_schema=False)
+def local_ui() -> str:
+    return render_local_ui()
 
 
 @app.get("/v1/me")

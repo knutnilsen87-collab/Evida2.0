@@ -2,9 +2,6 @@
 setlocal
 cd /d "%~dp0"
 
-set "EVIDA_LAUNCHER=%~dp0Evida2.0.bat"
-if exist "%EVIDA_LAUNCHER%" goto run_evida_launcher
-
 set "LAUNCHER=%~dp0scripts\start-dev.ps1"
 
 if exist "%LAUNCHER%" goto run_launcher
@@ -13,10 +10,6 @@ echo "%LAUNCHER%"
 echo.
 pause
 exit /b 1
-
-:run_evida_launcher
-call "%EVIDA_LAUNCHER%"
-exit /b %errorlevel%
 
 :run_launcher
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LAUNCHER%"
